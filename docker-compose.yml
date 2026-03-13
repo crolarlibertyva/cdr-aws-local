@@ -61,8 +61,8 @@ services:
   devcontainer:
     image: mcr.microsoft.com/devcontainers/python:1-3.11-bullseye
     volumes:
-      - ./:/workspace/glue-athena-local
-    working_dir: /workspace/glue-athena-local
+      - ./:/workspace/cdr-aws-local
+    working_dir: /workspace/cdr-aws-local
     command: sleep infinity
     environment:
       - AWS_DEFAULT_REGION=us-east-1
