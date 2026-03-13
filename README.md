@@ -18,7 +18,7 @@ If you are using WSL and need Podman with Docker-compatible commands (`docker`, 
 ## Project Structure
 
 ```
-glue-athena-local/
+cdr-aws-local/
 ├── .devcontainer/
 │   └── devcontainer.json
 ├── .vscode/
@@ -53,173 +53,12 @@ glue-athena-local/
 boto3
 trino
 pandas
+opensearch-py
 ```
 
 ---
 
-### Moto (Local AWS Services)
-
-The `moto` container (`motoserver/moto`) emulates multiple AWS services in a single process. All state is held in memory and resets when the container restarts.
-
-| Emulated Service | AWS Equivalent       | Purpose                                |
-|------------------|----------------------|----------------------------------------|
-| S3               | Amazon S3            | Object storage for Parquet/JSON files  |
-| Glue Catalog     | AWS Glue Data Catalog| Table and database metadata            |
-| Athena           | Amazon Athena        | Query execution API                    |
-| SQS              | Amazon SQS           | Message queuing                        |
-
-| Service  | URL                   |
-|----------|-----------------------|
-| Moto API | http://localhost:5000 |
-
-Credentials for all Moto-backed calls: `aws_access_key_id=test`, `aws_secret_access_key=test`, `region=us-east-1`.
-
-Verify Moto is running:
-
-```bash
-curl http://localhost:5000/moto-api/
-```
-
-List S3 buckets and Glue databases:
-
-```bash
-aws --endpoint-url http://localhost:5000 s3 ls \
-    --region us-east-1 --no-sign-request
-
-aws --endpoint-url http://localhost:5000 glue get-databases \
-    --region us-east-1 --no-sign-request
-```
-
-Create an SQS queue and send a message:
-
-```bash
-aws --endpoint-url http://localhost:5000 sqs create-queue \
-    --queue-name my-queue --region us-east-1 --no-sign-request
-
-aws --endpoint-url http://localhost:5000 sqs send-message \
-    --queue-url http://localhost:5000/000000000000/my-queue \
-    --message-body '{"hello":"world"}' --region us-east-1 --no-sign-request
-```
-
----
-
-### Glue (Local Spark ETL)
-
-The `glue` container (`public.ecr.aws/glue/aws-glue-libs:5`) provides the same Spark + `awsglue` runtime used by AWS Glue ETL jobs. It starts idle (`tail -f /dev/null`) so you can submit jobs on demand.
-
-| Detail           | Value                                        |
-|------------------|----------------------------------------------|
-| Image            | `public.ecr.aws/glue/aws-glue-libs:5`       |
-| Spark master     | `local[*]`                                   |
-| Jobs directory   | `./glue-jobs` → `/home/hadoop/jobs`          |
-| Data directory   | `./data` → `/home/hadoop/data`               |
-| S3 backend       | Moto (`http://moto:5000`)                    |
-
-Submit a Glue job manually:
-
-```bash
-docker compose exec -T glue spark-submit \
-    --master "local[*]" \
-    /home/hadoop/jobs/01_ingest_to_catalog.py
-```
-
-List Glue Catalog tables created by the jobs:
-
-```bash
-aws --endpoint-url http://localhost:5000 glue get-tables \
-    --database-name sales_db --region us-east-1 --no-sign-request
-```
-
-The two included Glue jobs:
-
-| Job | File | Description |
-|-----|------|-------------|
-| 1 | `01_ingest_to_catalog.py` | Reads local JSON, writes Parquet to S3, registers tables in the Glue Catalog |
-| 2 | `02_join_and_write.py` | Joins customer and order tables via Spark, writes joined Parquet, registers the result |
-
----
-
-### Trino (Local Athena)
-
-The `trino` container (`trinodb/trino`) is a single-node Trino coordinator that acts as a local Amazon Athena. It connects to the Moto Glue Catalog as its Hive metastore and reads Parquet data from mock S3.
-
-| Detail               | Value                          |
-|----------------------|--------------------------------|
-| Image                | `trinodb/trino`                |
-| HTTP port            | `8080`                         |
-| Catalog name         | `glue`                         |
-| Metastore type       | `glue` (Hive connector)        |
-| S3 backend           | Moto (`http://moto:5000`)      |
-
-Configuration files are in `trino-config/`:
-
-| File | Purpose |
-|------|---------|
-| `config.properties` | Coordinator settings, HTTP port |
-| `node.properties` | Node identity |
-| `jvm.config` | JVM options |
-| `catalog/glue.properties` | Hive connector → Moto Glue + S3 |
-
-Verify Trino is ready:
-
-```bash
-curl http://localhost:8080/v1/info
-```
-
-Run a query via the Trino CLI (from the container):
-
-```bash
-docker compose exec trino trino --execute \
-    "SELECT * FROM glue.sales_db.customer_orders LIMIT 5"
-```
-
-Or use the Python sample app:
-
-```bash
-python sample-apps/query_glue_table.py "SELECT * FROM glue.sales_db.customer_orders ORDER BY order_date"
-```
-
----
-
-### OpenSearch (Local AWS OpenSearch)
-
-The `opensearch` container provides a local, single-node OpenSearch cluster (AWS OpenSearch equivalent). Security is disabled for local development convenience.
-
-| Service               | URL                          |
-|-----------------------|------------------------------|
-| OpenSearch API        | http://localhost:9200        |
-| OpenSearch Dashboards | http://localhost:5601        |
-
-Verify the cluster is running:
-
-```bash
-curl http://localhost:9200
-curl http://localhost:9200/_cluster/health?pretty
-```
-
-Create an index and insert a document:
-
-```bash
-curl -X PUT http://localhost:9200/my-index \
-  -H 'Content-Type: application/json' \
-  -d '{"settings":{"number_of_shards":1,"number_of_replicas":0}}'
-
-curl -X POST http://localhost:9200/my-index/_doc/1 \
-  -H 'Content-Type: application/json' \
-  -d '{"title":"Hello","content":"OpenSearch is running locally"}'
-```
-
-Search the index:
-
-```bash
-curl http://localhost:9200/my-index/_search?pretty
-```
-
-Open OpenSearch Dashboards in a browser at http://localhost:5601 to explore data visually.
-
----
-
-### Final Architecture
+### Architecture
 
 ```
   JSON files (local)
@@ -258,11 +97,9 @@ Open OpenSearch Dashboards in a browser at http://localhost:5601 to explore data
   └──────────────────────┘
 ```
 
-**5 containers, no duplication, Moto handles everything AWS-side.**
-
 ---
 
-### Running It
+## Setting up
 
 WSL + Podman users: see [README-podman-wsl.md](README-podman-wsl.md) for Docker-compatible setup before running these commands.
 
@@ -287,37 +124,44 @@ zip -v | head -n 2
 unzip -v | head -n 2
 ```
 
+### Running
+
+#### Booting up the stack
 ```bash
 docker-compose up -d
 sleep 30  # wait for Trino to initialize
-python sample-apps/run_pipeline.py
-python sample-apps/sqs_to_opensearch.py
 ```
 
-### Query Scripts
+#### Running the apps
 
-The app includes two standalone query scripts that accept a SQL `SELECT` statement as a command-line argument and print all records to stdout.
+1. Running Glue and Athena
 
-1. Query Glue tables through Trino (local Athena-compatible engine):
+#### Run a Glue pipeline
+```bash
+python sample-apps/run_pipeline.py
+```
+Run query scripts that accept a SQL `SELECT` statement as a command-line argument and print all records to stdout.
+
+#### Query Glue tables through Trino (local Athena-compatible engine):
 
 ```bash
 python sample-apps/query_glue_table.py "SELECT * FROM glue.sales_db.customer_orders ORDER BY order_date"
 ```
 
-Additional example with optional connection flags:
+#### Additional example with optional connection flags:
 
 ```bash
 python sample-apps/query_glue_table.py "SELECT country, SUM(amount) AS revenue FROM glue.sales_db.customer_orders GROUP BY country ORDER BY revenue DESC" \
       --host localhost --port 8080 --user admin --catalog glue --schema sales_db
 ```
 
-2. Query Athena tables through the Athena API (Moto endpoint):
+#### Query Athena tables through the Athena API (Moto endpoint):
 
 ```bash
 python sample-apps/query_athena_table.py "SELECT * FROM customer_orders ORDER BY order_date"
 ```
 
-Additional example with optional endpoint/output flags:
+#### Additional example with optional endpoint/output flags:
 
 ```bash
 python sample-apps/query_athena_table.py "SELECT customer_name, COUNT(*) AS orders FROM customer_orders GROUP BY customer_name ORDER BY orders DESC" \
@@ -336,10 +180,10 @@ Notes:
 - `query_glue_table.py` expects fully qualified table references (for example `glue.sales_db.customer_orders`).
 - `query_athena_table.py` uses `sales_db` as the default Athena database.
 
----
-
 ### SQS to OpenSearch Demo
-
+```bash
+python sample-apps/sqs_to_opensearch.py
+```
 The script `sample-apps/sqs_to_opensearch.py` demonstrates a complete message flow:
 
 1. Creates an SQS queue on the Moto endpoint
@@ -373,14 +217,8 @@ python sample-apps/sqs_to_opensearch.py \
       --secret-key test
 ```
 
-Prerequisites:
 
-- Containers must be running: `docker compose up -d`
-- Install dependencies: `uv pip install -r requirements.txt`
-
----
-
-### VS Code Dev Container
+## VS Code Dev Container
 
 This repository includes a dedicated `devcontainer` service in `docker-compose.yml` and a `.devcontainer/devcontainer.json` config so VS Code can attach directly.
 
@@ -405,11 +243,9 @@ pwd
 
 Expected workspace path:
 
-`/workspace/glue-athena-local`
+`/workspace/cdr-aws-local`
 
----
-
-### Install AWS CLI v2 (WSL/Linux)
+## Install AWS CLI v2 (WSL/Linux)
 
 Install AWS CLI v2 with the official installer:
 
@@ -460,4 +296,166 @@ alias awsmoto='aws --profile moto --endpoint-url http://localhost:5000'
 awsmoto s3 ls
 awsmoto glue get-databases
 ```
+---
+## Moto (Local AWS Services)
+
+The `moto` container (`motoserver/moto`) emulates multiple AWS services in a single process. All state is held in memory and resets when the container restarts.
+
+| Emulated Service | AWS Equivalent       | Purpose                                |
+|------------------|----------------------|----------------------------------------|
+| S3               | Amazon S3            | Object storage for Parquet/JSON files  |
+| Glue Catalog     | AWS Glue Data Catalog| Table and database metadata            |
+| Athena           | Amazon Athena        | Query execution API                    |
+| SQS              | Amazon SQS           | Message queuing                        |
+
+| Service  | URL                   |
+|----------|-----------------------|
+| Moto API | http://localhost:5000 |
+
+Credentials for all Moto-backed calls: `aws_access_key_id=test`, `aws_secret_access_key=test`, `region=us-east-1`.
+
+Verify Moto is running:
+
+```bash
+curl http://localhost:5000/moto-api/
+```
+
+List S3 buckets and Glue databases:
+
+```bash
+aws --endpoint-url http://localhost:5000 s3 ls \
+    --region us-east-1 --no-sign-request
+
+aws --endpoint-url http://localhost:5000 glue get-databases \
+    --region us-east-1 --no-sign-request
+```
+
+Create an SQS queue and send a message:
+
+```bash
+aws --endpoint-url http://localhost:5000 sqs create-queue \
+    --queue-name my-queue --region us-east-1 --no-sign-request
+
+aws --endpoint-url http://localhost:5000 sqs send-message \
+    --queue-url http://localhost:5000/000000000000/my-queue \
+    --message-body '{"hello":"world"}' --region us-east-1 --no-sign-request
+```
+
+---
+
+## Glue (Local Spark ETL)
+
+The `glue` container (`public.ecr.aws/glue/aws-glue-libs:5`) provides the same Spark + `awsglue` runtime used by AWS Glue ETL jobs. It starts idle (`tail -f /dev/null`) so you can submit jobs on demand.
+
+| Detail           | Value                                        |
+|------------------|----------------------------------------------|
+| Image            | `public.ecr.aws/glue/aws-glue-libs:5`       |
+| Spark master     | `local[*]`                                   |
+| Jobs directory   | `./glue-jobs` → `/home/hadoop/jobs`          |
+| Data directory   | `./data` → `/home/hadoop/data`               |
+| S3 backend       | Moto (`http://moto:5000`)                    |
+
+Submit a Glue job manually:
+
+```bash
+docker compose exec -T glue spark-submit \
+    --master "local[*]" \
+    /home/hadoop/jobs/01_ingest_to_catalog.py
+```
+
+List Glue Catalog tables created by the jobs:
+
+```bash
+aws --endpoint-url http://localhost:5000 glue get-tables \
+    --database-name sales_db --region us-east-1 --no-sign-request
+```
+
+The two included Glue jobs:
+
+| Job | File | Description |
+|-----|------|-------------|
+| 1 | `01_ingest_to_catalog.py` | Reads local JSON, writes Parquet to S3, registers tables in the Glue Catalog |
+| 2 | `02_join_and_write.py` | Joins customer and order tables via Spark, writes joined Parquet, registers the result |
+
+---
+
+## Trino (Local Athena)
+
+The `trino` container (`trinodb/trino`) is a single-node Trino coordinator that acts as a local Amazon Athena. It connects to the Moto Glue Catalog as its Hive metastore and reads Parquet data from mock S3.
+
+| Detail               | Value                          |
+|----------------------|--------------------------------|
+| Image                | `trinodb/trino`                |
+| HTTP port            | `8080`                         |
+| Catalog name         | `glue`                         |
+| Metastore type       | `glue` (Hive connector)        |
+| S3 backend           | Moto (`http://moto:5000`)      |
+
+Configuration files are in `trino-config/`:
+
+| File | Purpose |
+|------|---------|
+| `config.properties` | Coordinator settings, HTTP port |
+| `node.properties` | Node identity |
+| `jvm.config` | JVM options |
+| `catalog/glue.properties` | Hive connector → Moto Glue + S3 |
+
+Verify Trino is ready:
+
+```bash
+curl http://localhost:8080/v1/info
+```
+
+Run a query via the Trino CLI (from the container):
+
+```bash
+docker compose exec trino trino --execute \
+    "SELECT * FROM glue.sales_db.customer_orders LIMIT 5"
+```
+
+Or use the Python sample app:
+
+```bash
+python sample-apps/query_glue_table.py "SELECT * FROM glue.sales_db.customer_orders ORDER BY order_date"
+```
+
+---
+
+## OpenSearch (Local AWS OpenSearch)
+
+The `opensearch` container provides a local, single-node OpenSearch cluster (AWS OpenSearch equivalent). Security is disabled for local development convenience.
+
+| Service               | URL                          |
+|-----------------------|------------------------------|
+| OpenSearch API        | http://localhost:9200        |
+| OpenSearch Dashboards | http://localhost:5601        |
+
+Verify the cluster is running:
+
+```bash
+curl http://localhost:9200
+curl http://localhost:9200/_cluster/health?pretty
+```
+
+Create an index and insert a document:
+
+```bash
+curl -X PUT http://localhost:9200/my-index \
+  -H 'Content-Type: application/json' \
+  -d '{"settings":{"number_of_shards":1,"number_of_replicas":0}}'
+
+curl -X POST http://localhost:9200/my-index/_doc/1 \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"Hello","content":"OpenSearch is running locally"}'
+```
+
+Search the index:
+
+```bash
+curl http://localhost:9200/my-index/_search?pretty
+```
+
+Open OpenSearch Dashboards in a browser at http://localhost:5601 to explore data visually.
+
+---
 
