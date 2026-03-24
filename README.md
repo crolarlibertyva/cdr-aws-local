@@ -406,14 +406,39 @@ Verify Trino is ready:
 curl http://localhost:8080/v1/info
 ```
 
-Run a query via the Trino CLI (from the container):
+### Running Trino CLI commands (from the container)
+
+Show all catalogs (connectors) registered in Trino:
 
 ```bash
-docker compose exec trino trino --execute \
-    "SELECT * FROM glue.sales_db.customer_orders LIMIT 5"
+docker compose exec trino trino --execute "SHOW CATALOGS"
 ```
 
-Or use the Python sample app:
+Show all databases (schemas) within the `glue` catalog:
+
+```bash
+docker compose exec trino trino --execute "SHOW SCHEMAS FROM glue"
+```
+
+Show all tables within a specific database:
+
+```bash
+docker compose exec trino trino --execute "SHOW TABLES FROM glue.sales_db"
+```
+
+Describe the columns of a table:
+
+```bash
+docker compose exec trino trino --execute "DESCRIBE glue.sales_db.customer_orders"
+```
+
+Run a query via the Trino CLI:
+
+```bash
+docker compose exec trino trino --execute "SELECT * FROM glue.sales_db.customer_orders LIMIT 5"
+```
+
+### Running Trino query using the Python sample app:
 
 ```bash
 python sample-apps/query_glue_table.py "SELECT * FROM glue.sales_db.customer_orders ORDER BY order_date"
