@@ -28,10 +28,10 @@ services:
       - SPARK_CONF_spark.hadoop.fs.s3a.aws.credentials.provider=org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider
     depends_on:
       - moto
-    entrypoint: ["tail", "-f", "/dev/null"]
 
   trino:
     image: trinodb/trino
+    user: "1000:1000"
     ports:
       - "8080:8080"
     volumes:
