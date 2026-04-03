@@ -48,7 +48,9 @@ RUN set -eux; \
         vscode_url="https://update.code.visualstudio.com/commit:${resolved_commit}/server-linux-${vscode_arch}/stable"; \
         install_dir="/home/vscode/.vscode-server/bin/${resolved_commit}"; \
         mkdir -p "$install_dir"; \
-        curl -fsSL --retry 5 --retry-all-errors "$vscode_url" -o /tmp/vscode-server.tar.gz; \
+        if ! curl -kfsSL --retry 5 --retry-all-errors "$vscode_url" -o /tmp/vscode-server.tar.gz; then \
+            VSCODE_URL="$vscode_url" python -c "import os, ssl, certifi, urllib.request; url=os.environ['VSCODE_URL']; ctx=ssl.create_default_context(cafile=certifi.where()); data=urllib.request.urlopen(url, context=ctx).read(); open('/tmp/vscode-server.tar.gz', 'wb').write(data)"; \
+        fi; \
         tar -xzf /tmp/vscode-server.tar.gz -C "$install_dir" --strip-components=1; \
         rm -f /tmp/vscode-server.tar.gz; \
         chown -R vscode:vscode /home/vscode/.vscode-server
