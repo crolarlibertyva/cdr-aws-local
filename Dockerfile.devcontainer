@@ -54,5 +54,5 @@ RUN set -eux; \
         tar -xzf /tmp/vscode-server.tar.gz -C "$install_dir" --strip-components=1; \
         rm -f /tmp/vscode-server.tar.gz; \
         chown -R vscode:vscode /home/vscode/.vscode-server
-
+RUN mkdir /workspace && chown -R vscode:vscode /workspace
 WORKDIR /workspace

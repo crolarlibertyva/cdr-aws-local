@@ -64,8 +64,6 @@ services:
     image: cdr-aws-developer
     volumes:
       - ./:/workspace/cdr-aws-local
-      - ../cdr-delta-lake:/workspace/cdr-delta-lake
-    working_dir: /workspace/cdr-aws-local
     command: sleep infinity
     environment:
       - AWS_DEFAULT_REGION=us-east-1
