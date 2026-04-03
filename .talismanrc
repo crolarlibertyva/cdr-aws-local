@@ -1,0 +1,4 @@
+fileignoreconfig:
+- filename: requirements.txt
+  checksum: dda9935e618ef376eb8548aaadae63aff5a87ce000a74727cf77e0992258fbab
+version: ""
