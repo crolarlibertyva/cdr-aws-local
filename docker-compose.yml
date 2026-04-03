@@ -12,7 +12,9 @@ services:
     volumes:
       - ./glue-jobs:/home/hadoop/jobs
       - ./data:/home/hadoop/data
+      - ../cdr-delta-lake:/home/hadoop/cdr-delta-lake
     environment:
+      - PYTHONPATH=/usr/share/aws/glue-pds:/home/hadoop/cdr-delta-lake/shared/glue-python-lib/src:/home/hadoop/cdr-delta-lake/silver/test/synthetic_data_gen
       - AWS_DEFAULT_REGION=us-east-1
       - AWS_ACCESS_KEY_ID=test
       - AWS_SECRET_ACCESS_KEY=test
