@@ -9,7 +9,8 @@ COPY requirements.txt /tmp/setup/requirements.txt
 
 # Install AWS CLI v2 and clean up apt metadata to keep image size down.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl unzip \
+    && apt-get install -y --no-install-recommends ca-certificates curl unzip \
+    && update-ca-certificates \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
