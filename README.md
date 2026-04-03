@@ -278,6 +278,8 @@ Run AWS CLI commands against Moto with `--profile moto` and `--endpoint-url http
 
 ```bash
 # S3
+Note when running these from the dev container use http://moto:5000 instead of http://localhost:5000
+
 aws --profile moto --endpoint-url http://localhost:5000 s3 ls
 aws --profile moto --endpoint-url http://localhost:5000 s3 ls s3://glue-bucket --recursive
 
