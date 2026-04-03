@@ -2,6 +2,7 @@
 Reusable query helpers for local Glue and Athena emulators.
 """
 
+import os
 import time
 from typing import List, Sequence, Tuple
 
@@ -36,7 +37,7 @@ def run_athena_query(
     sql: str,
     database: str = "sales_db",
     output_location: str = "s3://glue-bucket/athena-results/",
-    endpoint_url: str = "http://localhost:5000",
+    endpoint_url: str = os.getenv("S3_AWS_ENDPOINT_URL", ""),
     region_name: str = "us-east-1",
     aws_access_key_id: str = "test",
     aws_secret_access_key: str = "test",

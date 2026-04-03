@@ -6,6 +6,7 @@ Usage:
 """
 
 import argparse
+import os
 
 from query_utils import print_rows_stdout, run_athena_query
 
@@ -23,7 +24,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--endpoint-url",
-        default="http://localhost:5000",
+        default=os.getenv("S3_AWS_ENDPOINT_URL", ""),
         help="Athena endpoint URL",
     )
     parser.add_argument("--region", default="us-east-1", help="AWS region")

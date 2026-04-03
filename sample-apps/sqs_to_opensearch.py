@@ -4,12 +4,13 @@ Demo: push a message to SQS (Moto), retrieve it, and index it into OpenSearch.
 Usage:
   python sample-apps/sqs_to_opensearch.py
   python sample-apps/sqs_to_opensearch.py --message '{"event":"signup","user":"alice"}'
-  python sample-apps/sqs_to_opensearch.py --sqs-endpoint http://localhost:5000 \
+    python sample-apps/sqs_to_opensearch.py --sqs-endpoint "$S3_AWS_ENDPOINT_URL" \
         --opensearch-url http://localhost:9200 --index events
 """
 
 import argparse
 import json
+import os
 import uuid
 from datetime import datetime, timezone
 
@@ -31,7 +32,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--sqs-endpoint",
-        default="http://localhost:5000",
+        default=os.getenv("S3_AWS_ENDPOINT_URL", ""),
         help="SQS endpoint URL (Moto)",
     )
     parser.add_argument(
