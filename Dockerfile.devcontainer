@@ -16,13 +16,13 @@ RUN apt-get update \
 RUN set -eux; \
         arch="$(dpkg --print-architecture)"; \
         case "$arch" in \
-            amd64) vscode_arch="x64"; update_api_platform="linux-x64" ;; \
-            arm64) vscode_arch="arm64"; update_api_platform="linux-arm64" ;; \
+            amd64) awscli_arch="x86_64" ;; \
+            arm64) awscli_arch="aarch64" ;; \
             *) echo "Unsupported architecture for VS Code Server: $arch"; exit 1 ;; \
         esac; \
-        curl "https://awscli.amazonaws.com/awscli-exe-${update_api_platform}.zip" -o "awscliv2.zip" \
-        unzip awscliv2.zip \
-        ./aws/install \
+        curl -fsSL --retry 5 --retry-all-errors "https://awscli.amazonaws.com/awscli-exe-linux-${awscli_arch}.zip" -o "awscliv2.zip"; \
+    unzip awscliv2.zip; \
+    ./aws/install; \
         rm -rf aws awscliv2.zip
 
 RUN pip install --no-cache-dir -r /tmp/setup/requirements.txt
@@ -38,7 +38,7 @@ RUN set -eux; \
         if [ -n "$VSCODE_SERVER_COMMIT" ]; then \
             resolved_commit="$VSCODE_SERVER_COMMIT"; \
         else \
-            resolved_commit="$(curl -fsSL "https://update.code.visualstudio.com/api/commits/stable/${update_api_platform}" | sed -n 's/.*"\([a-f0-9]\{40\}\)".*/\1/p' | head -n 1)"; \
+            resolved_commit="$(curl -fsSL --retry 5 --retry-all-errors "https://update.code.visualstudio.com/api/commits/stable/${update_api_platform}" | tr -d '[]\"[:space:]' | cut -d, -f1)"; \
         fi; \
         if [ -z "$resolved_commit" ]; then \
             echo "Failed to resolve VS Code server commit"; \
@@ -47,7 +47,7 @@ RUN set -eux; \
         vscode_url="https://update.code.visualstudio.com/commit:${resolved_commit}/server-linux-${vscode_arch}/stable"; \
         install_dir="/home/vscode/.vscode-server/bin/${resolved_commit}"; \
         mkdir -p "$install_dir"; \
-        curl -fsSL "$vscode_url" -o /tmp/vscode-server.tar.gz; \
+        curl -fsSL --retry 5 --retry-all-errors "$vscode_url" -o /tmp/vscode-server.tar.gz; \
         tar -xzf /tmp/vscode-server.tar.gz -C "$install_dir" --strip-components=1; \
         rm -f /tmp/vscode-server.tar.gz; \
         chown -R vscode:vscode /home/vscode/.vscode-server
