@@ -166,7 +166,7 @@ python sample-apps/query_athena_table.py "SELECT * FROM customer_orders ORDER BY
 ```bash
 python sample-apps/query_athena_table.py "SELECT customer_name, COUNT(*) AS orders FROM customer_orders GROUP BY customer_name ORDER BY orders DESC" \
       --database sales_db \
-      --endpoint-url http://localhost:5000 \
+      --endpoint-url $S3_AWS_ENDPOINT_URL \
       --output-location s3://glue-bucket/athena-results/ \
       --region us-east-1 \
       --access-key test \
@@ -209,7 +209,7 @@ All available flags:
 ```bash
 python sample-apps/sqs_to_opensearch.py \
       --message '{"event": "signup", "user": "alice"}' \
-      --sqs-endpoint http://localhost:5000 \
+      --sqs-endpoint $S3_AWS_ENDPOINT_URL \
       --opensearch-url http://localhost:9200 \
       --index events \
       --region us-east-1 \
@@ -274,27 +274,27 @@ aws configure set output json --profile moto
 docker compose up -d moto glue trino
 ```
 
-Run AWS CLI commands against Moto with `--profile moto` and `--endpoint-url http://localhost:5000`:
+Run AWS CLI commands against Moto with `--profile moto` and `--endpoint-url $S3_AWS_ENDPOINT_URL`:
 
 ```bash
 # S3
-Note when running these from the dev container use http://moto:5000 instead of http://localhost:5000
+Note when running these from the dev container use http://moto:5000 instead of $S3_AWS_ENDPOINT_URL
 
-aws --profile moto --endpoint-url http://localhost:5000 s3 ls
-aws --profile moto --endpoint-url http://localhost:5000 s3 ls s3://glue-bucket --recursive
+aws --profile moto --endpoint-url $S3_AWS_ENDPOINT_URL s3 ls
+aws --profile moto --endpoint-url $S3_AWS_ENDPOINT_URL s3 ls s3://glue-bucket --recursive
 
 # Glue Catalog
-aws --profile moto --endpoint-url http://localhost:5000 glue get-databases
-aws --profile moto --endpoint-url http://localhost:5000 glue get-tables --database-name sales_db
+aws --profile moto --endpoint-url $S3_AWS_ENDPOINT_URL glue get-databases
+aws --profile moto --endpoint-url $S3_AWS_ENDPOINT_URL glue get-tables --database-name sales_db
 
 # Athena API (Moto-emulated)
-aws --profile moto --endpoint-url http://localhost:5000 athena list-data-catalogs
+aws --profile moto --endpoint-url $S3_AWS_ENDPOINT_URL athena list-data-catalogs
 ```
 
 Optional shell helper:
 
 ```bash
-alias awsmoto='aws --profile moto --endpoint-url http://localhost:5000'
+alias awsmoto='aws --profile moto --endpoint-url $S3_AWS_ENDPOINT_URL'
 awsmoto s3 ls
 awsmoto glue get-databases
 ```
@@ -310,36 +310,36 @@ The `moto` container (`motoserver/moto`) emulates multiple AWS services in a sin
 | Athena           | Amazon Athena        | Query execution API                    |
 | SQS              | Amazon SQS           | Message queuing                        |
 
-| Service  | URL                   |
-|----------|-----------------------|
-| Moto API | http://localhost:5000 |
+| Service  | URL                                       |
+|----------|-------------------------------------------|
+| Moto API | `$S3_AWS_ENDPOINT_URL` (default: `http://localhost:5000`) |
 
 Credentials for all Moto-backed calls: `aws_access_key_id=test`, `aws_secret_access_key=test`, `region=us-east-1`.
 
 Verify Moto is running:
 
 ```bash
-curl http://localhost:5000/moto-api/
+curl ${S3_AWS_ENDPOINT_URL}/moto-api/
 ```
 
 List S3 buckets and Glue databases:
 
 ```bash
-aws --endpoint-url http://localhost:5000 s3 ls \
+aws --endpoint-url $S3_AWS_ENDPOINT_URL s3 ls \
     --region us-east-1 --no-sign-request
 
-aws --endpoint-url http://localhost:5000 glue get-databases \
+aws --endpoint-url $S3_AWS_ENDPOINT_URL glue get-databases \
     --region us-east-1 --no-sign-request
 ```
 
 Create an SQS queue and send a message:
 
 ```bash
-aws --endpoint-url http://localhost:5000 sqs create-queue \
+aws --endpoint-url $S3_AWS_ENDPOINT_URL sqs create-queue \
     --queue-name my-queue --region us-east-1 --no-sign-request
 
-aws --endpoint-url http://localhost:5000 sqs send-message \
-    --queue-url http://localhost:5000/000000000000/my-queue \
+aws --endpoint-url $S3_AWS_ENDPOINT_URL sqs send-message \
+    --queue-url ${S3_AWS_ENDPOINT_URL}/000000000000/my-queue \
     --message-body '{"hello":"world"}' --region us-east-1 --no-sign-request
 ```
 
@@ -368,7 +368,7 @@ docker compose exec -T glue spark-submit \
 List Glue Catalog tables created by the jobs:
 
 ```bash
-aws --endpoint-url http://localhost:5000 glue get-tables \
+aws --endpoint-url $S3_AWS_ENDPOINT_URL glue get-tables \
     --database-name sales_db --region us-east-1 --no-sign-request
 ```
 
