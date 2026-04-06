@@ -12,7 +12,7 @@ import trino
 
 def run_trino_query(
     sql: str,
-    host: str = "localhost",
+    host: str = "trino",
     port: int = 8080,
     user: str = "admin",
     catalog: str = "glue",
