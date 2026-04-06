@@ -66,6 +66,7 @@ services:
       - ./:/workspace/cdr-aws-local
     command: sleep infinity
     environment:
+      - AWS_ENDPOINT_URL=http://moto:5000
       - AWS_DEFAULT_REGION=us-east-1
       - AWS_ACCESS_KEY_ID=test
       - AWS_SECRET_ACCESS_KEY=test

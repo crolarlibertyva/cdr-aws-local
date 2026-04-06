@@ -332,6 +332,14 @@ aws --endpoint-url $S3_AWS_ENDPOINT_URL glue get-databases \
     --region us-east-1 --no-sign-request
 ```
 
+Create a Glue database:
+
+```bash
+aws --endpoint-url $S3_AWS_ENDPOINT_URL glue create-database \
+    --database-input '{"Name":"sales_db","Description":"Sales and customer data"}' \
+    --region us-east-1 --no-sign-request
+```
+
 Create an SQS queue and send a message:
 
 ```bash
