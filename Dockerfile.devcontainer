@@ -8,10 +8,16 @@ WORKDIR /tmp/setup
 COPY requirements.txt /tmp/setup/requirements.txt
 
 # Install AWS CLI v2 and clean up apt metadata to keep image size down.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates curl unzip \
-    && update-ca-certificates \
-    && apt-get clean \
+# RUN sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 3B4FE6ACC0B21F32
+# RUN apt install gpg -y --no-install-recommends
+# RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
+# RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo tee /etc/apt/trusted.gpg.d/dl.yarnpkg.com.asc
+# RUN apt-key adv --refresh-keys --keyserver keyserver.ubuntu.com
+RUN rm -f /etc/apt/sources.list.d/yarn.list
+RUN apt-get update 
+RUN apt-get install -y --no-install-recommends ca-certificates curl unzip
+RUN update-ca-certificates
+RUN apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 RUN set -eux; \
