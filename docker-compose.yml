@@ -62,6 +62,9 @@ services:
       - opensearch
 
   devcontainer:
+    build:
+      context: .
+      dockerfile: Dockerfile.devcontainer
     image: cdr-aws-developer
     volumes:
       - ./:/workspace/cdr-aws-local
