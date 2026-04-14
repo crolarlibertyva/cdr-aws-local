@@ -7,7 +7,7 @@ set -euo pipefail
 #   ./scripts/create-s3-bucket.sh <bucket-name>
 #
 # Environment variables:
-#   MOTO_ENDPOINT  – Moto URL (default: http://localhost:5000)
+#   S3_AWS_ENDPOINT_URL  – S3 endpoint URL (default: http://localhost:5000)
 # ---------------------------------------------------------------------------
 
 if [[ $# -lt 1 ]]; then
@@ -16,7 +16,7 @@ if [[ $# -lt 1 ]]; then
 fi
 
 BUCKET="$1"
-ENDPOINT="${MOTO_ENDPOINT:-http://localhost:5000}"
+ENDPOINT="${S3_AWS_ENDPOINT_URL:-http://localhost:5000}"
 
 echo "Creating bucket '${BUCKET}' at ${ENDPOINT} ..."
 AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test \
