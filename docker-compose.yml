@@ -69,6 +69,7 @@ services:
     volumes:
       - ./:/workspace/cdr-aws-local
     command: sleep infinity
+    working_dir: /workspace
     environment:
       - AWS_ENDPOINT_URL=http://moto:5000
       - AWS_DEFAULT_REGION=us-east-1
