@@ -15,7 +15,7 @@ COPY requirements.txt /tmp/setup/requirements.txt
 # RUN apt-key adv --refresh-keys --keyserver keyserver.ubuntu.com
 RUN rm -f /etc/apt/sources.list.d/yarn.list
 RUN apt-get update 
-RUN apt-get install -y --no-install-recommends ca-certificates curl unzip
+RUN apt-get install -y --no-install-recommends ca-certificates curl unzip openjdk-17-jre
 RUN update-ca-certificates
 RUN apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -62,3 +62,6 @@ RUN set -eux; \
         chown -R vscode:vscode /home/vscode/.vscode-server
 RUN mkdir /workspace && chown -R vscode:vscode /workspace
 WORKDIR /workspace
+USER vscode
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
