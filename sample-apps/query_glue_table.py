@@ -6,6 +6,7 @@ Usage:
 """
 
 import argparse
+import os
 
 from query_utils import print_rows_stdout, run_trino_query
 
@@ -15,7 +16,7 @@ def parse_args() -> argparse.Namespace:
         description="Run a SQL SELECT query against Glue tables via Trino.",
     )
     parser.add_argument("sql", help="SQL SELECT statement to execute")
-    parser.add_argument("--host", default="localhost", help="Trino host")
+    parser.add_argument("--host", default=os.getenv("TRINO_HOST", "localhost"), help="Trino host")
     parser.add_argument("--port", type=int, default=8080, help="Trino port")
     parser.add_argument("--user", default="admin", help="Trino user")
     parser.add_argument("--catalog", default="glue", help="Trino catalog")
